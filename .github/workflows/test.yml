@@ -2,7 +2,7 @@ name: Cosmos Emulator Test
 
 on:
   push:
-    branches: [ temp-cosmos-job ]
+    branches: [ main ]
 
 jobs:
   test:
