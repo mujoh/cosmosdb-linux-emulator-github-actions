@@ -1,0 +1,51 @@
+name: Cosmos Emulator Test
+
+on:
+  push:
+    branches: [ main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      cosmos:
+        image: mcr.microsoft.com/cosmosdb/linux/azure-cosmos-emulator
+        env:
+          AZURE_COSMOS_EMULATOR_PARTITION_COUNT: 1
+          AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "false"
+        ports:
+          - 8081:8081
+        options: |
+          --health-cmd "curl -k https://localhost:8081/_explorer/emulator.pem"
+          --health-interval 5s
+          --health-timeout 2s
+          --health-retries 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.10
+
+      - name: Install dependencies
+        run: pip install azure-cosmos
+
+      - name: Wait for emulator readiness
+        run: |
+          echo "Waiting for Cosmos DB Emulator..."
+          for i in {1..30}; do
+            if curl -k https://localhost:8081/_explorer/emulator.pem > /dev/null 2>&1; then
+              echo "Emulator ready!"
+              exit 0
+            fi
+            echo "Not ready yet ($i/30)..."
+            sleep 2
+          done
+          echo "Emulator did not start in time."
+          exit 1
+
+      - name: Run Python test
+        run: python insert.py
