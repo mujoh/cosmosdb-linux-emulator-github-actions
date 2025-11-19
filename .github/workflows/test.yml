@@ -2,7 +2,7 @@ name: Cosmos Emulator Test
 
 on:
   push:
-    branches: [ main]
+    branches: [ temp-cosmos-job ]
 
 jobs:
   test:
@@ -16,16 +16,16 @@ jobs:
           AZURE_COSMOS_EMULATOR_ENABLE_DATA_PERSISTENCE: "false"
         ports:
           - 8081:8081
-        options: |
-          --health-cmd "curl -k https://localhost:8081/_explorer/emulator.pem"
-          --health-interval 5s
-          --health-timeout 2s
-          --health-retries 20
+        options: >-
+          --health-cmd="curl -k https://localhost:8081/_explorer/emulator.pem"
+          --health-interval=5s
+          --health-timeout=2s
+          --health-retries=60
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Python
+      - name: Setup Python
         uses: actions/setup-python@v4
         with:
           python-version: 3.10
@@ -33,18 +33,18 @@ jobs:
       - name: Install dependencies
         run: pip install azure-cosmos
 
-      - name: Wait for emulator readiness
+      - name: Wait for emulator
         run: |
           echo "Waiting for Cosmos DB Emulator..."
-          for i in {1..30}; do
-            if curl -k https://localhost:8081/_explorer/emulator.pem > /dev/null 2>&1; then
+          for i in {1..40}; do
+            if curl -k https://localhost:8081/_explorer/emulator.pem >/dev/null 2>&1; then
               echo "Emulator ready!"
               exit 0
             fi
-            echo "Not ready yet ($i/30)..."
-            sleep 2
+            echo "Not ready ($i/40)..."
+            sleep 3
           done
-          echo "Emulator did not start in time."
+          echo "FAILED: Emulator did not become ready."
           exit 1
 
       - name: Run Python test
